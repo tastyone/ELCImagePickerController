@@ -11,8 +11,12 @@
 #import "ELCAlbumPickerController.h"
 
 @interface ELCAssetTablePicker ()
+{
+    BOOL viewWillAppearAtFirst;
+}
 
 @property (nonatomic, assign) int columns;
+@property (nonatomic, assign) CGFloat cellHeight;
 
 @end
 
@@ -27,6 +31,10 @@
 
 - (void)viewDidLoad
 {
+    self.cellHeight = [ELCAssetCell cellHeight];
+    
+    viewWillAppearAtFirst = YES;
+    
     [self.tableView setSeparatorStyle:UITableViewCellSeparatorStyleNone];
 	[self.tableView setAllowsSelection:NO];
 
@@ -39,16 +47,23 @@
     } else {
         UIBarButtonItem *doneButtonItem = [[[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(doneAction:)] autorelease];
         [self.navigationItem setRightBarButtonItem:doneButtonItem];
-        [self.navigationItem setTitle:@"Loading..."];
+        [self.navigationItem setTitle:NSLocalizedString(@"Loading...",nil)];
     }
 
-	[self performSelectorInBackground:@selector(preparePhotos) withObject:nil];
+    if ( self.assetGroup ) {
+        [self didGroupLoaded];
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated
 {
     [super viewWillAppear:animated];
-    self.columns = self.view.bounds.size.width / 80;
+    
+    if ( viewWillAppearAtFirst ) {
+        viewWillAppearAtFirst = NO;
+        self.columns = (int)[ELCAssetCell numberOfColumnsForWidth:self.view.bounds.size.width];
+    }
+    [self.tableView reloadData];
 }
 
 - (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation
@@ -59,8 +74,18 @@
 - (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation
 {
     [super didRotateFromInterfaceOrientation:fromInterfaceOrientation];
-    self.columns = self.view.bounds.size.width / 80;
+    self.columns = (int)[ELCAssetCell numberOfColumnsForWidth:self.view.bounds.size.width];
     [self.tableView reloadData];
+}
+
+- (void)didGroupLoaded
+{
+    NSString* groupTitle = [self.assetGroup valueForProperty:ALAssetsGroupPropertyName];
+    if ( groupTitle ) {
+        [self.navigationItem setTitle:groupTitle];
+    }
+    
+	[self performSelectorInBackground:@selector(preparePhotos) withObject:nil];
 }
 
 - (void)preparePhotos
@@ -90,7 +115,7 @@
         
         [elcAsset release];
      }];
-    NSLog(@"done enumerating photos");
+    NSLog(@"done enumerating photos - %u photos", [self.elcAssets count]);
     
     dispatch_sync(dispatch_get_main_queue(), ^{
         [self.tableView reloadData];
@@ -105,7 +130,7 @@
                                           animated:NO];
         }
         
-        [self.navigationItem setTitle:self.singleSelection ? @"Pick Photo" : @"Pick Photos"];
+//        [self.navigationItem setTitle:self.singleSelection ? @"Pick Photo" : @"Pick Photos"];
     });
     
     [pool release];
@@ -156,6 +181,9 @@
     }
 }
 
+
+
+
 #pragma mark UITableViewDataSource Delegate Methods
 
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
@@ -196,7 +224,7 @@
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
     
-	return 79;
+	return self.cellHeight;
 }
 
 - (int)totalSelectedAssets {

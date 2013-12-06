@@ -16,11 +16,16 @@
 - (void)elcImagePickerController:(ELCImagePickerController *)picker didFinishPickingMediaWithInfo:(NSArray *)info;
 - (void)elcImagePickerControllerDidCancel:(ELCImagePickerController *)picker;
 
+@optional
+- (void)elcImagePickerController:(ELCImagePickerController *)picker willPrepareAssets:(NSArray *)assets;
+- (void)elcImagePickerController:(ELCImagePickerController *)picker preparingInProgress:(CGFloat)progress;
+- (void)elcImagePickerControllerDidFinishPrepareAssets:(ELCImagePickerController *)picker;
+
 @end
 
 @interface ELCImagePickerController : UINavigationController <ELCAssetSelectionDelegate>
 
-@property (nonatomic, assign) id<ELCImagePickerControllerDelegate> delegate;
+@property (nonatomic, assign) id<ELCImagePickerControllerDelegate> pickerDelegate;
 @property (nonatomic, assign) NSInteger maximumImagesCount;
 
 - (void)cancelImagePicker;

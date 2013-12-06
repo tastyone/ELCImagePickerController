@@ -10,6 +10,9 @@
 
 @interface ELCAssetCell : UITableViewCell
 
++ (CGFloat)cellHeight;
++ (NSUInteger)numberOfColumnsForWidth:(CGFloat)width;
+
 - (id)initWithAssets:(NSArray *)assets reuseIdentifier:(NSString *)identifier;
 - (void)setAssets:(NSArray *)assets;
 

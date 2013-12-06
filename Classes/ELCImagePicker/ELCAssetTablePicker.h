@@ -24,6 +24,7 @@
 @property(nonatomic, assign) id<ELCAssetPickerFilterDelegate> assetPickerFilterDelegate;
 
 - (int)totalSelectedAssets;
+- (void)didGroupLoaded;
 - (void)preparePhotos;
 
 - (void)doneAction:(id)sender;

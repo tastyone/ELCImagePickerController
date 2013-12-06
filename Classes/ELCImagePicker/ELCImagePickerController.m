@@ -15,12 +15,10 @@
 
 @implementation ELCImagePickerController
 
-@synthesize delegate = _myDelegate;
-
 - (void)cancelImagePicker
 {
-	if([_myDelegate respondsToSelector:@selector(elcImagePickerControllerDidCancel:)]) {
-		[_myDelegate performSelector:@selector(elcImagePickerControllerDidCancel:) withObject:self];
+	if([_pickerDelegate respondsToSelector:@selector(elcImagePickerControllerDidCancel:)]) {
+		[_pickerDelegate performSelector:@selector(elcImagePickerControllerDidCancel:) withObject:self];
 	}
 }
 
@@ -42,6 +40,13 @@
 {
 	NSMutableArray *returnArray = [[[NSMutableArray alloc] init] autorelease];
 	
+    CGFloat progress = 0.f;
+    CGFloat unitProgress = assets.count > 0 ? 1.f/assets.count : 0.f;
+    
+    if ( _pickerDelegate && [_pickerDelegate respondsToSelector:@selector(elcImagePickerController:willPrepareAssets:)] ) {
+        [_pickerDelegate elcImagePickerController:self willPrepareAssets:assets];
+    }
+    
 	for(ALAsset *asset in assets) {
 		NSMutableDictionary *workingDictionary = [[NSMutableDictionary alloc] init];
 		
@@ -53,21 +58,60 @@
 		[workingDictionary setObject:[asset valueForProperty:ALAssetPropertyType] forKey:@"UIImagePickerControllerMediaType"];
         ALAssetRepresentation *assetRep = [asset defaultRepresentation];
         
-        CGImageRef imgRef = [assetRep fullScreenImage];
+//        if ( !assetRep ) {
+//            NSArray* reps = [asset valueForProperty:ALAssetPropertyRepresentations];
+//            NSLog(@"reps: %@", reps);
+//            if ( reps && reps.count > 0 ) {
+//                for (NSString* uti in reps) {
+//                    assetRep = [asset representationForUTI:uti];
+//                    if ( assetRep ) break;
+//                }
+//            }
+//        }
+        
+        progress += unitProgress*0.2f;
+        if ( _pickerDelegate && [_pickerDelegate respondsToSelector:@selector(elcImagePickerController:preparingInProgress:)] ) {
+            [_pickerDelegate elcImagePickerController:self preparingInProgress:progress];
+        }
+        
+//        CGImageRef imgRef = [assetRep fullScreenImage];
+        CGImageRef imgRef = [assetRep fullResolutionImage];
+        
+        progress += unitProgress*0.4f;
+        if ( _pickerDelegate && [_pickerDelegate respondsToSelector:@selector(elcImagePickerController:preparingInProgress:)] ) {
+            [_pickerDelegate elcImagePickerController:self preparingInProgress:progress];
+        }
+        
         UIImage *img = [UIImage imageWithCGImage:imgRef
                                            scale:1.0f
                                      orientation:(UIImageOrientation)assetRep.orientation];
+        
+        progress += unitProgress*0.2f;
+        if ( _pickerDelegate && [_pickerDelegate respondsToSelector:@selector(elcImagePickerController:preparingInProgress:)] ) {
+            [_pickerDelegate elcImagePickerController:self preparingInProgress:progress];
+        }
+        
         [workingDictionary setObject:img forKey:@"UIImagePickerControllerOriginalImage"];
 		[workingDictionary setObject:[[asset valueForProperty:ALAssetPropertyURLs] valueForKey:[[[asset valueForProperty:ALAssetPropertyURLs] allKeys] objectAtIndex:0]] forKey:@"UIImagePickerControllerReferenceURL"];
+        [workingDictionary setObject:assetRep.metadata forKey:@"UIImagePickerControllerMediaMetadata"];
 		
 		[returnArray addObject:workingDictionary];
 		
-		[workingDictionary release];	
-	}    
-	if(_myDelegate != nil && [_myDelegate respondsToSelector:@selector(elcImagePickerController:didFinishPickingMediaWithInfo:)]) {
-		[_myDelegate performSelector:@selector(elcImagePickerController:didFinishPickingMediaWithInfo:) withObject:self withObject:[NSArray arrayWithArray:returnArray]];
+		[workingDictionary release];
+        
+        progress += unitProgress*0.2f;
+        if ( _pickerDelegate && [_pickerDelegate respondsToSelector:@selector(elcImagePickerController:preparingInProgress:)] ) {
+            [_pickerDelegate elcImagePickerController:self preparingInProgress:progress];
+        }
+	}
+	if(_pickerDelegate != nil && [_pickerDelegate respondsToSelector:@selector(elcImagePickerController:didFinishPickingMediaWithInfo:)]) {
+		[_pickerDelegate performSelector:@selector(elcImagePickerController:didFinishPickingMediaWithInfo:) withObject:self withObject:[NSArray arrayWithArray:returnArray]];
 	} else {
         [self popToRootViewControllerAnimated:NO];
+    }
+    
+    if ( _pickerDelegate && [_pickerDelegate respondsToSelector:@selector(elcImagePickerControllerDidFinishPrepareAssets:)] ) {
+        [_pickerDelegate elcImagePickerControllerDidFinishPrepareAssets:self];
     }
 }
 

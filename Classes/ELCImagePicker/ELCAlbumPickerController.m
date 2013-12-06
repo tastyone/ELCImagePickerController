@@ -11,8 +11,6 @@
 
 @interface ELCAlbumPickerController ()
 
-@property (nonatomic, retain) ALAssetsLibrary *library;
-
 @end
 
 @implementation ELCAlbumPickerController
@@ -30,68 +28,81 @@
 	
 	[self.navigationItem setTitle:@"Loading..."];
 
-    UIBarButtonItem *cancelButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self.parent action:@selector(cancelImagePicker)];
-	[self.navigationItem setRightBarButtonItem:cancelButton];
-	[cancelButton release];
-
-    NSMutableArray *tempArray = [[NSMutableArray alloc] init];
-	self.assetGroups = tempArray;
-    [tempArray release];
+//    UIBarButtonItem *cancelButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self.parent action:@selector(cancelImagePicker)];
+//	[self.navigationItem setRightBarButtonItem:cancelButton];
+//	[cancelButton release];
     
-    ALAssetsLibrary *assetLibrary = [[ALAssetsLibrary alloc] init];
-    self.library = assetLibrary;
-    [assetLibrary release];
-
-    // Load Albums into assetGroups
-    dispatch_async(dispatch_get_main_queue(), ^
+    if ( self.assetGroups && self.library )
     {
-        NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+        [self reloadTableView];
+    }
+    else
+    {
+        NSMutableArray *tempArray = [[NSMutableArray alloc] init];
+        self.assetGroups = tempArray;
+        [tempArray release];
         
-        // Group enumerator Block
-        void (^assetGroupEnumerator)(ALAssetsGroup *, BOOL *) = ^(ALAssetsGroup *group, BOOL *stop) 
-        {
-            if (group == nil) {
-                return;
-            }
-            
-            // added fix for camera albums order
-            NSString *sGroupPropertyName = (NSString *)[group valueForProperty:ALAssetsGroupPropertyName];
-            NSUInteger nType = [[group valueForProperty:ALAssetsGroupPropertyType] intValue];
-            
-            if ([[sGroupPropertyName lowercaseString] isEqualToString:@"camera roll"] && nType == ALAssetsGroupSavedPhotos) {
-                [self.assetGroups insertObject:group atIndex:0];
-            }
-            else {
-                [self.assetGroups addObject:group];
-            }
+        ALAssetsLibrary *assetLibrary = [[ALAssetsLibrary alloc] init];
+        self.library = assetLibrary;
+        [assetLibrary release];
 
-            // Reload albums
-            [self performSelectorOnMainThread:@selector(reloadTableView) withObject:nil waitUntilDone:YES];
-        };
-        
-        // Group Enumerator Failure Block
-        void (^assetGroupEnumberatorFailure)(NSError *) = ^(NSError *error) {
+        // Load Albums into assetGroups
+        dispatch_async(dispatch_get_main_queue(), ^
+        {
+            NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
             
-            UIAlertView * alert = [[UIAlertView alloc] initWithTitle:@"Error" message:[NSString stringWithFormat:@"Album Error: %@ - %@", [error localizedDescription], [error localizedRecoverySuggestion]] delegate:nil cancelButtonTitle:@"Ok" otherButtonTitles:nil];
-            [alert show];
-            [alert release];
-            
-            NSLog(@"A problem occured %@", [error description]);	                                 
-        };	
+            // Group enumerator Block
+            void (^assetGroupEnumerator)(ALAssetsGroup *, BOOL *) = ^(ALAssetsGroup *group, BOOL *stop) 
+            {
+                if (group == nil) {
+                    return;
+                }
                 
-        // Enumerate Albums
-        [self.library enumerateGroupsWithTypes:ALAssetsGroupAll
-                               usingBlock:assetGroupEnumerator 
-                             failureBlock:assetGroupEnumberatorFailure];
-        
-        [pool release];
-    });    
+                // added fix for camera albums order
+                NSString *sGroupPropertyName = (NSString *)[group valueForProperty:ALAssetsGroupPropertyName];
+                NSUInteger nType = [[group valueForProperty:ALAssetsGroupPropertyType] intValue];
+                
+                if ([[sGroupPropertyName lowercaseString] isEqualToString:@"camera roll"] && nType == ALAssetsGroupSavedPhotos) {
+                    [self.assetGroups insertObject:group atIndex:0];
+                }
+                else {
+                    [self.assetGroups addObject:group];
+                }
+
+                // Reload albums
+                [self performSelectorOnMainThread:@selector(reloadTableView) withObject:nil waitUntilDone:YES];
+            };
+            
+            // Group Enumerator Failure Block
+            void (^assetGroupEnumberatorFailure)(NSError *) = ^(NSError *error) {
+                
+                if ( [self.navigationController respondsToSelector:@selector(setError:)] ) {
+                    [self.navigationController performSelector:@selector(setError:) withObject:error];
+                } else {
+                    UIAlertView * alert = [[UIAlertView alloc] initWithTitle:@"Error" message:[NSString stringWithFormat:@"Album Error: %@ - %@", [error localizedDescription], [error localizedRecoverySuggestion]] delegate:nil cancelButtonTitle:@"Ok" otherButtonTitles:nil];
+                    [alert show];
+                    [alert release];
+                }
+                
+                self.title = NSLocalizedString(@"Error", nil);
+                
+                NSLog(@"A problem occured %@", [error description]);	                                 
+            };	
+                    
+            // Enumerate Albums
+            [self.library enumerateGroupsWithTypes:ALAssetsGroupAll
+                                   usingBlock:assetGroupEnumerator 
+                                 failureBlock:assetGroupEnumberatorFailure];
+            
+            [pool release];
+        });
+    }
 }
 
 - (void)reloadTableView
 {
 	[self.tableView reloadData];
-	[self.navigationItem setTitle:@"Select an Album"];
+	[self.navigationItem setTitle:NSLocalizedString(@"Select an Album", nil)];
 }
 
 - (BOOL)shouldSelectAsset:(ELCAsset *)asset previousCount:(NSUInteger)previousCount {

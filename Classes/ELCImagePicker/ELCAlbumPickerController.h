@@ -13,6 +13,7 @@
 @interface ELCAlbumPickerController : UITableViewController <ELCAssetSelectionDelegate>
 
 @property (nonatomic, assign) id<ELCAssetSelectionDelegate> parent;
+@property (nonatomic, retain) ALAssetsLibrary *library;
 @property (nonatomic, retain) NSMutableArray *assetGroups;
 
 // optional, can be used to filter the assets displayed
