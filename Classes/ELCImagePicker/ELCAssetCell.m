@@ -16,6 +16,10 @@ const static CGFloat kELCAssetCell_DefaultCellWidthForRetina = 78.5f;
 const static CGFloat kELCAssetCell_DefaultCellSpaceForRetina = 2.f;
 const static UIEdgeInsets kELCAssetCell_DefaultPaddingsForRetina = {1.f, 0.f, 1.f, 0.f};
 
+static CGFloat kELCAssetCell_WideWidthWidth = 0.f;
+const static CGFloat kELCAssetCell_WideWidthSpace = 1.f;
+const static UIEdgeInsets kELCAssetCell_WideWidthPaddings = {1.f, 0.f, 1.f, 0.f};
+
 @interface ELCAssetCell ()
 
 @property (nonatomic, strong) NSArray *rowAssets;
@@ -32,16 +36,46 @@ const static UIEdgeInsets kELCAssetCell_DefaultPaddingsForRetina = {1.f, 0.f, 1.
 
 //Using auto synthesizers
 
++ (CGFloat)narrowWidth;
+{
+    static CGFloat _w = 0.f;
+    if ( _w > 0.f ) return _w;
+    _w = MIN([UIScreen mainScreen].bounds.size.width, [UIScreen mainScreen].bounds.size.height);
+    return _w;
+}
+
++ (CGFloat)cellWidth;
+{
+    if ( [self narrowWidth] > 320.f ) {
+        if ( kELCAssetCell_WideWidthWidth < 1.f ) {
+            kELCAssetCell_WideWidthWidth = floorf(([self narrowWidth] - kELCAssetCell_WideWidthSpace*3.f - kELCAssetCell_WideWidthPaddings.left - kELCAssetCell_WideWidthPaddings.right) / 4.f);
+        }
+        return kELCAssetCell_WideWidthWidth;
+    } else if ( [UIScreen mainScreen].scale > 1.f ) {
+        return kELCAssetCell_DefaultCellWidthForRetina;
+    }
+    return kELCAssetCell_DefaultCellWidth;
+}
+
 + (CGFloat)cellHeight;
 {
-    return [UIScreen mainScreen].scale > 1.f ? (kELCAssetCell_DefaultCellWidthForRetina+kELCAssetCell_DefaultPaddingsForRetina.top+kELCAssetCell_DefaultPaddingsForRetina.bottom) : (kELCAssetCell_DefaultCellWidth+kELCAssetCell_DefaultPaddings.top+kELCAssetCell_DefaultPaddings.bottom);
+    if ( [self narrowWidth] > 320.f ) {
+        return [self cellWidth]+kELCAssetCell_WideWidthPaddings.top+kELCAssetCell_WideWidthPaddings.bottom;
+    }
+    return [UIScreen mainScreen].scale > 1.f ?
+    (kELCAssetCell_DefaultCellWidthForRetina+kELCAssetCell_DefaultPaddingsForRetina.top+kELCAssetCell_DefaultPaddingsForRetina.bottom) :
+    (kELCAssetCell_DefaultCellWidth+kELCAssetCell_DefaultPaddings.top+kELCAssetCell_DefaultPaddings.bottom);
 }
 + (NSUInteger)numberOfColumnsForWidth:(CGFloat)width;
 {
     CGFloat availableWidth = width;
     CGFloat cellWidth = 0.f;
     CGFloat cellSpace = 0.f;
-    if ( [UIScreen mainScreen].scale > 1.f ) {
+    if ( [self narrowWidth] > 320.f ) {
+        availableWidth = width - kELCAssetCell_WideWidthPaddings.left - kELCAssetCell_WideWidthPaddings.right;
+        cellWidth = [self cellWidth];
+        cellSpace = kELCAssetCell_WideWidthSpace;
+    } else if ( [UIScreen mainScreen].scale > 1.f ) {
         availableWidth = width - kELCAssetCell_DefaultPaddingsForRetina.left - kELCAssetCell_DefaultPaddingsForRetina.right;
         cellWidth = kELCAssetCell_DefaultCellWidthForRetina;
         cellSpace = kELCAssetCell_DefaultCellSpaceForRetina;
@@ -71,7 +105,11 @@ const static UIEdgeInsets kELCAssetCell_DefaultPaddingsForRetina = {1.f, 0.f, 1.
         NSMutableArray *overlayArray = [[NSMutableArray alloc] initWithCapacity:4];
         self.overlayViewArray = overlayArray;
         
-        if ( [UIScreen mainScreen].scale > 1.f ) {
+        if ( [[self class] narrowWidth] > 320.f ) {
+            self.cellWidth = [[self class] cellWidth];
+            self.cellSpace = kELCAssetCell_WideWidthSpace;
+            self.paddings = kELCAssetCell_WideWidthPaddings;
+        } else if ( [UIScreen mainScreen].scale > 1.f ) {
             self.cellWidth = kELCAssetCell_DefaultCellWidthForRetina;
             self.cellSpace = kELCAssetCell_DefaultCellSpaceForRetina;
             self.paddings = kELCAssetCell_DefaultPaddingsForRetina;
